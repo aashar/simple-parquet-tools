@@ -28,8 +28,11 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.reflect.ReflectData;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.List;
+import java.util.Locale;
 
 class RecordBuilder<E> {
   private final Schema schema;
@@ -172,8 +175,7 @@ class RecordBuilder<E> {
             if (string.isEmpty())
             	return null;
               if (schema.getLogicalType() != null && schema.getLogicalType().getName().equalsIgnoreCase("timestamp-micros") && schema.getProp("datetimeFormat") != null) {
-            	DateTimeFormatter format = DateTimeFormatter.ofPattern(schema.getProp("datetimeFormat"));
-            	return (int) LocalTime.parse(string, format).getNano()/1000;
+            	return getDatetime(schema.getProp("datetimeFormat"), schema.getProp("datetimelanguage"), string);
               }
           return Long.valueOf(string);
         case ENUM:
@@ -211,5 +213,24 @@ class RecordBuilder<E> {
         throw e;
       }
     }
+  }
+  
+  private static long getDatetime(String formatString, String language, String datetimeString) {
+	  DateTimeFormatter format;
+	  DateTimeFormatterBuilder formatBuilder = new DateTimeFormatterBuilder()
+			  .parseCaseInsensitive()
+			  .appendPattern(formatString);
+	  
+	  if(language == null || language.isEmpty())
+		  format = formatBuilder.toFormatter(Locale.getDefault());
+	  else {
+		  Locale locale = new Locale.Builder()
+			  .setLanguage(language)
+			  .build();
+		  format = formatBuilder.toFormatter(locale);
+	  }
+	  
+	  ZonedDateTime dt = ZonedDateTime.parse(datetimeString, format);
+	  return dt.toEpochSecond() * 1000000L + dt.getNano()/1000L;
   }
 }

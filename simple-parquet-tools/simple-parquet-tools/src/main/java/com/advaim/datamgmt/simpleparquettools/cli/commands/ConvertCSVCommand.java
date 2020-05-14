@@ -171,6 +171,22 @@ public class ConvertCSVCommand extends BaseCommand {
           .withWriteMode(overwrite ?
               ParquetFileWriter.Mode.OVERWRITE : ParquetFileWriter.Mode.CREATE)
           .withCompressionCodec(codec)
+//          .withValidation(true)   // TODO: Check for memory leak
+          /*
+           Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
+				at java.util.ArrayDeque.doubleCapacity(ArrayDeque.java:162)
+				at java.util.ArrayDeque.addFirst(ArrayDeque.java:236)
+				at java.util.ArrayDeque.push(ArrayDeque.java:508)
+				at org.apache.parquet.io.ValidatingRecordConsumer.endField(ValidatingRecordConsumer.java:105)
+				at org.apache.parquet.avro.AvroWriteSupport.writeRecordFields(AvroWriteSupport.java:192)
+				at org.apache.parquet.avro.AvroWriteSupport.write(AvroWriteSupport.java:165)
+				at org.apache.parquet.hadoop.InternalParquetRecordWriter.write(InternalParquetRecordWriter.java:128)
+				at org.apache.parquet.hadoop.ParquetWriter.write(ParquetWriter.java:299)
+				at com.advaim.datamgmt.simpleparquettools.cli.commands.ConvertCSVCommand.run(ConvertCSVCommand.java:184)
+				at com.advaim.datamgmt.simpleparquettools.cli.Main.run(Main.java:150)
+				at org.apache.hadoop.util.ToolRunner.run(ToolRunner.java:70)
+				at com.advaim.datamgmt.simpleparquettools.cli.Main.main(Main.java:179)
+           */
           .withDictionaryEncoding(true)
           .withDictionaryPageSize(dictionaryPageSize)
           .withPageSize(pageSize)
