@@ -23,11 +23,13 @@ import com.advaim.datamgmt.simpleparquettools.cli.util.RecordException;
 import com.advaim.datamgmt.simpleparquettools.cli.util.Schemas;
 import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.Schema;
+import org.apache.avro.data.TimeConversions.TimestampMicrosConversion;
+import org.apache.avro.data.TimeConversions.TimestampMillisConversion;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.reflect.ReflectData;
+
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -174,10 +176,8 @@ class RecordBuilder<E> {
         case LONG:
             if (string.isEmpty())
             	return null;
-              if (schema.getLogicalType() != null && schema.getLogicalType().getName().equalsIgnoreCase("timestamp-micros") && schema.getProp("datetimeFormat") != null) {
-            	return getDatetime(schema.getProp("datetimeFormat"), schema.getProp("datetimelanguage"), string);
-              }
-          return Long.valueOf(string);
+
+    		return getLongfromString(schema, string);
         case ENUM:
           // TODO: translate to enum class
           if (schema.hasEnumSymbol(string)) {
@@ -214,23 +214,37 @@ class RecordBuilder<E> {
       }
     }
   }
-  
-  private static long getDatetime(String formatString, String language, String datetimeString) {
-	  DateTimeFormatter format;
-	  DateTimeFormatterBuilder formatBuilder = new DateTimeFormatterBuilder()
-			  .parseCaseInsensitive()
-			  .appendPattern(formatString);
-	  
-	  if(language == null || language.isEmpty())
-		  format = formatBuilder.toFormatter(Locale.getDefault());
-	  else {
-		  Locale locale = new Locale.Builder()
-			  .setLanguage(language)
-			  .build();
-		  format = formatBuilder.toFormatter(locale);
-	  }
-	  
-	  ZonedDateTime dt = ZonedDateTime.parse(datetimeString, format);
-	  return dt.toEpochSecond() * 1000000L + dt.getNano()/1000L;
+
+  private static Long getLongfromString(Schema schema, String string) {
+	if (schema.getLogicalType() != null && schema.getProp("datetimeFormat") != null) {
+	    DateTimeFormatter format;
+		String language = schema.getProp("datetimelanguage");
+
+		DateTimeFormatterBuilder formatBuilder = new DateTimeFormatterBuilder()
+				.parseCaseInsensitive()
+				.appendPattern(schema.getProp("datetimeFormat"));
+
+		if(language == null || language.isEmpty())
+			format = formatBuilder.toFormatter(Locale.getDefault());
+		else {
+			Locale locale = new Locale.Builder()
+				.setLanguage(language)
+				.build();
+			format = formatBuilder.toFormatter(locale);
+		}
+
+		ZonedDateTime dt = ZonedDateTime.parse(string, format);
+
+	  	if (schema.getLogicalType().getName().equalsIgnoreCase("timestamp-micros")) {
+	    	return new TimestampMicrosConversion().toLong(dt.toInstant(), null, null);
+		}
+		else if (schema.getLogicalType().getName().equalsIgnoreCase("timestamp-millis")) {
+	    	return new TimestampMillisConversion().toLong(dt.toInstant(), null, null);
+		} else {
+			return null;
+		}
+	} else {
+		return Long.valueOf(string);
+	}
   }
 }
