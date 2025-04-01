@@ -100,7 +100,7 @@
     </dependency>
   </dependencies>
   <properties>
-    <parquetProjVersion>1.11.0</parquetProjVersion>
+    <parquetProjVersion>1.15.1</parquetProjVersion>
     <commons-text.version>1.8</commons-text.version>
     <!-- opencsv.version>2.3</opencsv.version>
     <jcommander.version>1.72</jcommander.version>
